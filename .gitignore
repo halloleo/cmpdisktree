@@ -1,5 +1,9 @@
 # My additions
 
+# Output files
+cmp-err.log*
+cmp-ok.log*
+
 # Miscellaneous stuff
 /_extra
 
