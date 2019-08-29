@@ -1,8 +1,8 @@
 """
-The deafult exclusion list
+The default exclusion list
 """
 
-EXCLUDE_PATTERNS_DEFAULT = [
+STANDARD_EXCLUDE_PATTERNS = [
     '/.DocumentRevisions-V100',
     '.*/.TemporaryItems',
     ]

@@ -1,0 +1,4 @@
+#
+# A config file
+#
+backup=true
