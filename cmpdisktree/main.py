@@ -80,7 +80,7 @@ class Comparer():
     def error(self, err: ErrorKind, fkind: FileKind, path1: Path, path2: Path, message: str = ''):
         """Report errors"""
         self.everything_ok = False
-        msg = f"Error: {err.txt(fkind)} ({self.path_text(path1, path2)})"
+        msg = f"Issue: \"{err.txt(fkind)}\" || {self.path_text(path1, path2)}"
         self.echo(DEBUG, msg)
         self.err_log.write(msg)
 
@@ -139,20 +139,22 @@ class Comparer():
 
             if e_in_1.is_symlink():
                 # The "directory" or "file" might be a symlink:
-                lnk_in_1 = os.readlink(e_in_1)
-                if e_in_2.exists():
-                    try:
-                        lnk_in_2 = os.readlink(e_in_2)
-                        if lnk_in_1 == lnk_in_2:
-                            self.ok(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1, e_in_2)
-                        else:
-                            self.error(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1, e_in_2)
-                    except OSError:
+                lnk_in_1 = os.readlink(e_in_1)            
+
+                try:
+                    lnk_in_2 = os.readlink(e_in_2)
+                    if lnk_in_1 == lnk_in_2:
+                        self.ok(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1, e_in_2)
+                    else:
+                        self.error(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1, e_in_2)
+                except OSError:
+                    # entry still might exists (just not a symlink!
+                    if e_in_2.exists():
                         self.error(ErrorKind.MISMATCH, FileKind.SYMLINK, e_in_1,
                                    e_in_2)
-                else:
-                    self.error(ErrorKind.NOT_EXIST_IN_2, ikind, e_in_1,
-                               e_in_2)
+                    else:
+                        self.error(ErrorKind.NOT_EXIST_IN_2, ikind, e_in_1,
+                                   e_in_2)
 
                 try:
                     reduce_list2.remove(e)
