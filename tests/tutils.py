@@ -14,10 +14,10 @@ def file_has_lines(fname, num_lines):
     try:
         max_line_count = num_lines - 1
         with open(fname, 'r') as f:
-            for i,l in enumerate(f):
+            for i, l in enumerate(f):
                 if i == max_line_count:
                     res = True
-                else: # else occurs before AND after i == max_line_count
+                else:  # else occurs before AND after i == max_line_count
                     res = False
         return res
     except FileNotFoundError:
@@ -43,7 +43,9 @@ def compare_in(data_path, fs1, fs2, **kwargs):
     return cc.work()
 
 
-def assert_swap_compare(status, data_path, fs1, fs2, err_lines=-1, ok_lines=-1, **kwargs):
+def assert_swap_compare(
+    status, data_path, fs1, fs2, err_lines=-1, ok_lines=-1, **kwargs
+):
     # Normal compare
     assert compare_in(data_path, fs1, fs2, **kwargs) == status
     assert err_log_has_lines(err_lines)
@@ -52,4 +54,3 @@ def assert_swap_compare(status, data_path, fs1, fs2, err_lines=-1, ok_lines=-1, 
     assert compare_in(data_path, fs2, fs1, **kwargs) == status
     assert err_log_has_lines(err_lines)
     assert ok_log_has_lines(ok_lines)
-
