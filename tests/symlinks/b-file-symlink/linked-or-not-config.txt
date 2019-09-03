@@ -1,1 +1,4 @@
-dir-with-dir/etc/config.txt
+#
+# A config file
+#
+backup=true
