@@ -2,6 +2,8 @@
 Utility functions for cmpdisktree tests
 """
 
+from pathlib import Path
+
 from cmpdisktree import main
 
 
@@ -36,10 +38,21 @@ def ok_log_has_lines(ok_lines):
     """Check that err output file has the correct number of lines"""
     return file_has_lines(main.OK_LOG_DEFAULT_NAME, ok_lines)
 
+def join_path_with_checks(base, dir, name= None):
+    dirname = name if name else "directory"
+    if not dir:
+        raise ValueError(f"{dirname} cannot be empty")
+    res = Path(base).joinpath(dir)
+    if not res.exists():
+        dirtext = f"'{dir}' ({dirname})" if dir else f"{dirname}"
+        raise ValueError(f"{dirtext} needs to exists")
+    return res
 
 def compare_in(data_path, fs1, fs2, **kwargs):
     """Run a compare on "filesystems" under data_path"""
-    cc = main.Comparer(data_path.joinpath(fs1), data_path.joinpath(fs2), **kwargs)
+    path1 = join_path_with_checks(data_path, fs1, 'fs1')
+    path2 = join_path_with_checks(data_path, fs2, 'fs2')
+    cc = main.Comparer(path1, path2, **kwargs)
     return cc.work()
 
 

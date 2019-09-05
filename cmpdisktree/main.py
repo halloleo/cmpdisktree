@@ -10,6 +10,7 @@ from logging import DEBUG, ERROR, INFO
 from pathlib import Path
 
 import click
+from tqdm import tqdm
 
 from cmpdisktree import debug
 from cmpdisktree.exclusions import STANDARD_EXCLUDE_PATTERNS
@@ -76,7 +77,7 @@ class Comparer:
     def path_text(self, path1: Path, path2: Path):
         """Output of paths - Normally only path1, except for DEBUG"""
         if self.verbosity <= DEBUG:
-            return f"{path1} | {path2}"
+            return f"{path1} || {path2}"
         else:
             return f"{path1}"
 
@@ -90,7 +91,7 @@ class Comparer:
     ):
         """Report errors"""
         self.everything_ok = False
-        msg = f"Error: {err.txt(fkind)} ({self.path_text(path1, path2)})"
+        msg = f"Error: {err.txt(fkind)} | {self.path_text(path1, path2)})"
         self.echo(DEBUG, msg)
         self.err_log.write(msg)
 
@@ -183,27 +184,20 @@ class Comparer:
             e_in_2 = path2.joinpath(e)
 
             # Tracks whether entry e can be traversed into
-            keep_on_list = False
+            keep_on_mater_list = False
 
             try:
                 if e_in_1.is_symlink():
                     # The "directory" or "file" might be a symlink:
                     self.cmp_list_symlink_entry(ikind, e_in_1, e_in_2)
 
-                    try:
-                        reduce_list2.remove(e)
-                    except ValueError:
-                        pass  # doesn't need to be in list2
-
                 else:
                     # Real directory or file
                     if e in reduce_list2:  # this is equivalent to
                         # `if is_dir/is_file(e_in_2)`
-                        reduce_list2.remove(e)
                         if self.cmp_dir_or_file_entry(ikind, e_in_1, e_in_2):
                             # Keep this entry (a dir) for traversal!
-                            keep_on_list = True
-
+                            keep_on_mater_list = True
                     else:
                         if not self.excluded(e_in_2):
                             self.error(ErrorKind.NOT_EXIST_IN_2, ikind, e_in_1, e_in_2)
@@ -214,12 +208,18 @@ class Comparer:
                 try:
                     e_in_2.is_symlink()
                     # e2 is readable, so e2 is a **singular** NOACCESS error
-                    self.error(ErrorKind.NOACCESS, ikind, e_in_1, '---')
+                    self.error(ErrorKind.NOACCESS, ikind, 'SINGULAR | ' + str(e_in_1),
+                               '---')
+
                 except PermissionError as err2:
                     debug.dbg_long_exception(err2)
-                    self.error(ErrorKind.NOACCESS, ikind, '---', e_in_2)
+                    self.error(ErrorKind.NOACCESS, ikind, '---', 'SINGULAR | ' +
+                               str(e_in_2))
 
-            if not keep_on_list:
+            if e in reduce_list2:  # doesn't need to be in list2
+                reduce_list2.remove(e)
+
+            if not keep_on_mater_list:
                 # The following removes the element from in the
                 # **passed-in** list so that os.walk doesn't go into it
                 # (if it is a directory)
@@ -275,7 +275,7 @@ class Comparer:
 
     def work_phase2_compare(self):
         """Compare the files in the files_to_compare list"""
-        for path1 in self.files_to_compare:
+        for path1 in tqdm(self.files_to_compare):
             path2 = self.make_fs2_path(path1)
             try:
                 res = filecmp.cmp(path1, path2, shallow=self.shallow_compare)

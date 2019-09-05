@@ -8,7 +8,7 @@ import pytest
 from tests.tutils import assert_swap_compare
 
 
-DATA_PATH = Path('symlinks')
+DATA_PATH = Path('/Users/alba/data/devel/files/cmpdisktree/symlinks')
 
 
 class TestFSDirSymlinks:
