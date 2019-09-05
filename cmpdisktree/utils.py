@@ -1,5 +1,5 @@
 """
-Utility classes for cmpdisktree
+General utility classes for cmpdisktree
 """
 
 from enum import Enum, auto

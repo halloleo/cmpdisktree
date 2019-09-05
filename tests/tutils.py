@@ -44,7 +44,7 @@ def join_path_with_checks(base, dir, name= None):
         raise ValueError(f"{dirname} cannot be empty")
     res = Path(base).joinpath(dir)
     if not res.exists():
-        dirtext = f"'{dir}' ({dirname})" if dir else f"{dirname}"
+        dirtext = f"'{res}' ({dirname})" if dir else f"{dirname}"
         raise ValueError(f"{dirtext} needs to exists")
     return res
 

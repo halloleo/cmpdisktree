@@ -3,12 +3,14 @@ Test for the "filesystems in the `symlinks` folder
 """
 
 from pathlib import Path
-import pytest
 
 from tests.tutils import assert_swap_compare
 
 
-DATA_PATH = Path('/Users/alba/data/devel/files/cmpdisktree/symlinks')
+DATA_PATH = Path('symlinks')
+if 'Dropbox' in str(DATA_PATH.absolute().resolve()):
+    SECONDARY_TEST_TOP = Path('~/data/devel/cmpdisktree')
+    DATA_PATH = SECONDARY_TEST_TOP.expanduser().joinpath(DATA_PATH)
 
 
 class TestFSDirSymlinks:

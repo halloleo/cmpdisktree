@@ -3,25 +3,16 @@ Test for the "filesystems in the `basic` folder
 """
 
 from pathlib import Path
-import pytest
 
-from tests.tutils import assert_swap_compare, join_path_with_checks
-
+from tests.tutils import (
+    compare_in,
+    assert_swap_compare,
+    err_log_has_lines,
+    ok_log_has_lines,
+)
 
 
 DATA_PATH = Path('basic')
-
-class TestTutils:
-    def test_join_path_with_checks(self):
-        with pytest.raises(ValueError):
-            assert join_path_with_checks(DATA_PATH, '')
-
-        with pytest.raises(ValueError):
-            assert join_path_with_checks(DATA_PATH, 'does_not_exist')
-
-        assert join_path_with_checks(DATA_PATH, 'a') == \
-               DATA_PATH.joinpath(('a'))
-
 
 
 class TestFSBasic:
