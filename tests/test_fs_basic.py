@@ -5,10 +5,7 @@ Test for the "filesystems in the `basic` folder
 from pathlib import Path
 
 from tests.tutils import (
-    compare_in,
     assert_swap_compare,
-    err_log_has_lines,
-    ok_log_has_lines,
 )
 
 

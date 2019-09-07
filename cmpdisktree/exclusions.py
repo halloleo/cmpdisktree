@@ -58,7 +58,7 @@ Network Trash Folder
 /.MobileBackups.trash
 /private/var/db/com.apple.backupd.backupVerification
 # Corrupted iCloud Local Storage
-Library/Mobile Documents.*
+Library/Mobile Documents/*
 .webtmp
 # Special files
 /private/tmp/kacta.txt
