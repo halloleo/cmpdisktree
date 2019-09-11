@@ -43,8 +43,10 @@ class Comparer:
         self.fs2 = Path(fs2)
 
         self.verbosity = INFO
+        self.disable_progress = None # None means disable on non-tty
         if quiet:
             self.verbosity = ERROR
+            self.disable_progress = True
         if verbose:
             self.verbosity = DEBUG
 
@@ -76,34 +78,56 @@ class Comparer:
         # Standard lib filecmp caches file stats.
         filecmp.clear_cache()
 
-    def path_text(self, path1: Path, path2: Path):
+    def add_comment(self, text: str):
+        if text is None or text == '':
+            return ''
+        else:
+            return ' |:| ' + text
+
+    def make_rel_from_where_ever(self, path):
+        """Make path relative. Try FS1 then FS2"""
+        try:
+            rel = Path(path).relative_to(self.fs1)
+        except ValueError:
+            try:
+                rel = Path(path).relative_to(self.fs2)
+            except ValueError:
+                rel = path
+        return rel
+
+    def path_err_text(self, path: Path):
+        """Output of paths - Normally only path1, except for DEBUG"""
+        if self.verbosity <= DEBUG:
+            rel_path = '/' + str(self.make_rel_from_where_ever(path))
+            return f"{path} || REL: {rel_path}"
+        else:
+            return f"{path}"
+
+    def error(
+        self,
+        err: ErrorKind,
+        fkind: FileKind,
+        path: Path,
+        comment: str = '',
+    ):
+        """Report errors"""
+        self.everything_ok = False
+        msg = f"Error: {err.txt(fkind)} | {self.path_err_text(path)}" + self.add_comment(comment)
+        self.err_log.write(msg)
+
+    def path_ok_text(self, path1, path2: Path):
         """Output of paths - Normally only path1, except for DEBUG"""
         if self.verbosity <= DEBUG:
             return f"{path1} || {path2}"
         else:
             return f"{path1}"
 
-    def error(
-        self,
-        err: ErrorKind,
-        fkind: FileKind,
-        path1: Path,
-        path2: Path,
-        message: str = '',
-    ):
-        """Report errors"""
-        self.everything_ok = False
-        msg = f"Error: {err.txt(fkind)} | {self.path_text(path1,  path2)}"
-        self.echo(DEBUG, msg)
-        self.err_log.write(msg)
-
-    def ok(self, fkind: FileKind, path1: Path, path2: Path, message: str = ''):
+    def ok(self, fkind: FileKind, path: Path, comment: str = ''):
         """
         Report entries which are ok
         This is normally muted"""
         if self.report_identical:
-            msg = self.path_text(path1, path2)
-            self.echo(DEBUG, f"OK: {msg}")
+            msg = self.path_err_text(path) + self.add_comment(comment)
             self.ok_log.write(msg)
 
     def echo(self, level, message, *args):
@@ -137,15 +161,15 @@ class Comparer:
         try:
             lnk_in_2 = os.readlink(e_in_2)
             if lnk_in_1 == lnk_in_2:
-                self.ok(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1, e_in_2)
+                self.ok(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1)
             else:
-                self.error(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1, e_in_2)
+                self.error(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1)
         except OSError:
             # entry still might exists (just not a symlink!
             if e_in_2.exists():
-                self.error(ErrorKind.MISMATCH, FileKind.SYMLINK, e_in_1, e_in_2)
+                self.error(ErrorKind.MISMATCH, FileKind.SYMLINK, e_in_1)
             else:
-                self.error(ErrorKind.NOT_EXIST_IN_2, ekind, e_in_1, e_in_2)
+                self.error(ErrorKind.NOT_EXIST_IN_2, ekind, e_in_1)
 
     def cmp_dir_or_file_entry(self, ikind, e_in_1, e_in_2):
         """
@@ -159,12 +183,12 @@ class Comparer:
                 self.add_to_compare(e_in_1)
             else:
                 # DIRs don't need to be compared
-                self.ok(ikind, e_in_1, e_in_2)
+                self.ok(ikind, e_in_1)
                 # Keep this entry (a dir) for traversal!
                 keep = True
         else:
             # e_in_2 is a symlink
-            self.error(ErrorKind.MISMATCH, ikind, e_in_1, e_in_2)
+            self.error(ErrorKind.MISMATCH, ikind, e_in_2, "FS2 entry is symlink")
         return keep
 
     def cmp_list(self, master_list, list2, ikind: FileKind, path1: Path, path2: Path):
@@ -202,22 +226,22 @@ class Comparer:
                             keep_on_master_list = True
                     else:
                         if not self.excluded(e_in_2, self.fs2):
-                            self.error(ErrorKind.NOT_EXIST_IN_2, ikind, e_in_1, e_in_2)
+                            self.error(ErrorKind.NOT_EXIST_IN_2, ikind, e_in_1)
             except PermissionError as err:
                 debug.dbg_long_exception(err)
                 # We get here if we have a permission error in e1
                 # So lets try the same to e2
                 try:
                     e_in_2.is_symlink()
-                    # e2 is readable, so e2 is a **singular** NOACCESS error
+                    # e2 is readable, so e1 is a **singular** NOACCESS error
                     self.error(
-                        ErrorKind.NOACCESS, ikind, 'SINGULAR | ' + str(e_in_1), '---'
+                        ErrorKind.NOACCESS, ikind, e_in_1, 'FS1 entry not accessible'
                     )
 
                 except PermissionError as err2:
                     debug.dbg_long_exception(err2)
                     self.error(
-                        ErrorKind.NOACCESS, ikind, '---', 'SINGULAR | ' + str(e_in_2)
+                        ErrorKind.NOACCESS, ikind, e_in_2, 'FS2 entry not accessible'
                     )
 
             if e in reduce_list2:  # doesn't need to be in list2
@@ -234,7 +258,7 @@ class Comparer:
                 e_in_1 = path1.joinpath(extra)
                 e_in_2 = path2.joinpath(extra)
                 if not self.excluded(e_in_2, self.fs2):
-                    self.error(ErrorKind.NOT_EXIST_IN_1, ikind, e_in_1, e_in_2)
+                    self.error(ErrorKind.NOT_EXIST_IN_1, ikind, e_in_2)
 
     def excluded(self, path, ref_fs):
         """
@@ -247,6 +271,9 @@ class Comparer:
         pathstr = '/'+str(Path(path).relative_to(ref_fs))
 
         for pat in self.exclude_patterns:
+            if "Mobile" in pat:
+                # print("hallo")
+                pass
             front_only = False
             if pat.startswith('/'):
                 pat = pat[1:]
@@ -289,24 +316,24 @@ class Comparer:
                             filenames, filenames2, FileKind.FILE, dirpath, dir2path
                         )
                     else:
-                        self.error(ErrorKind.MISMATCH, FileKind.DIR, dirpath, dir2path)
+                        self.error(ErrorKind.MISMATCH, FileKind.DIR, dirpath)
                 else:
                     self.error(
-                        ErrorKind.NOT_EXIST_IN_2, FileKind.DIR, dirpath, dir2path
+                        ErrorKind.NOT_EXIST_IN_2, FileKind.DIR, dirpath
                     )
 
     def work_phase2_compare(self):
         """Compare the files in the files_to_compare list"""
-        for path1 in tqdm(self.files_to_compare):
+        for path1 in tqdm(self.files_to_compare, disable=self.disable_progress):
             path2 = self.make_fs2_path(path1)
             try:
                 res = filecmp.cmp(path1, path2, shallow=self.shallow_compare)
                 if res:
-                    self.ok(FileKind.FILE, path1, path2)
+                    self.ok(FileKind.FILE, path1)
                 else:
-                    self.error(ErrorKind.DIFF, FileKind.FILE, path1, path2)
-            except PermissionError:
-                self.error(ErrorKind.NOACCESS, FileKind.FILE, path1, path2)
+                    self.error(ErrorKind.DIFF, FileKind.FILE, path1)
+            except (PermissionError, OSError) as e:
+                self.error(ErrorKind.NOACCESS, FileKind.FILE, path1, str(e))
 
     def error_report(self):
         """Print error report"""
