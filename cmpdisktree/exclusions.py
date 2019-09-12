@@ -59,6 +59,7 @@ Network Trash Folder
 /private/var/db/com.apple.backupd.backupVerification
 # Corrupted iCloud Local Storage
 Library/Mobile Documents/*
+Library/Mobile Documents.*
 .webtmp
 # Special files
 /private/tmp/kacta.txt
@@ -78,11 +79,19 @@ Library/Preferences/ByHost/com.apple.loginwindow*
 /private/var/db/atpstatdb*
 """
 
-STANDARD_EXCLUDE_PATTERNS = [
-    pat
-    for pat in STANDARD_EXCLUDE_PATTERNS_STR.splitlines()
-    if not (pat.startswith('#') or pat == '')
-]
+ADD_LIVEFS_EXCLUDE_PATTERNS_STR = """
+.DS_Store
+"""
+
+def pattern_list_from_str(pat_str: str):
+    return [
+        pat
+        for pat in pat_str.splitlines()
+        if not (pat.startswith('#') or pat == '')
+    ]
+
+STANDARD_EXCLUDE_PATTERNS = pattern_list_from_str(STANDARD_EXCLUDE_PATTERNS_STR)
+ADD_LIVEFS_EXCLUDE_PATTERNS = pattern_list_from_str(ADD_LIVEFS_EXCLUDE_PATTERNS_STR)
 
 if __name__ == '__main__':
     for p in STANDARD_EXCLUDE_PATTERNS:

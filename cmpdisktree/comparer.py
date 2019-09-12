@@ -10,11 +10,10 @@ from logging import DEBUG, ERROR, INFO
 from pathlib import Path
 
 import click
-from tqdm import tqdm
 
 from cmpdisktree import debug
-from cmpdisktree.exclusions import STANDARD_EXCLUDE_PATTERNS
-from cmpdisktree.utils import ErrorKind, FileKind
+from cmpdisktree import exclusions
+from cmpdisktree.utils import ErrorKind, FileKind, Pbar
 from cmpdisktree import utils
 
 
@@ -35,6 +34,7 @@ class Comparer:
         structure_only=False,
         shallow_compare=False,
         clear_std_exclusions=False,
+        live_fs_exclusions=False,
         relative_fs_top=False,
         output_path=None,
     ):
@@ -56,14 +56,21 @@ class Comparer:
         self.shallow_compare = shallow_compare
         self.structure_only = structure_only
         self.clear_std_exclusions = clear_std_exclusions
+        self.live_fs_exclusions = live_fs_exclusions
         self.relative_fs_top = relative_fs_top
         self.output_path = output_path
 
         # Initialisations
         # List of folders not to traverse:
-        self.exclude_patterns = (
-            [] if self.clear_std_exclusions else STANDARD_EXCLUDE_PATTERNS
-        )
+        if self.clear_std_exclusions:
+            self.exclude_patterns = []
+        else:
+            self.exclude_patterns = exclusions.STANDARD_EXCLUDE_PATTERNS
+            if self.live_fs_exclusions:
+                self.exclude_patterns.extend(exclusions.ADD_LIVEFS_EXCLUDE_PATTERNS)
+
+        self.echo(DEBUG, "exclude patterns= \n{}".format(pp.pformat(self.exclude_patterns)))
+
         # Keep track whether pattern was already used in a first match:
         self.used_exclude_patterns = set([])
         # Memorise paths of the files in DIR1 to be compared:
@@ -82,7 +89,7 @@ class Comparer:
         if text is None or text == '':
             return ''
         else:
-            return ' |:| ' + text
+            return ' || COMMENT: ' + text
 
     def make_rel_from_where_ever(self, path):
         """Make path relative. Try FS1 then FS2"""
@@ -108,6 +115,7 @@ class Comparer:
         err: ErrorKind,
         fkind: FileKind,
         path: Path,
+        *,
         comment: str = '',
     ):
         """Report errors"""
@@ -205,13 +213,14 @@ class Comparer:
 
         loop_list = master_list.copy()
         reduce_list2 = list2.copy()
+        self.pbar.total += len(loop_list)
         for e in loop_list:
+            self.pbar.update()
             e_in_1 = path1.joinpath(e)
             e_in_2 = path2.joinpath(e)
 
             # Tracks whether entry e can be traversed into
             keep_on_master_list = False
-
             try:
                 if e_in_1.is_symlink():
                     # The "directory" or "file" might be a symlink:
@@ -271,9 +280,6 @@ class Comparer:
         pathstr = '/'+str(Path(path).relative_to(ref_fs))
 
         for pat in self.exclude_patterns:
-            if "Mobile" in pat:
-                # print("hallo")
-                pass
             front_only = False
             if pat.startswith('/'):
                 pat = pat[1:]
@@ -296,44 +302,57 @@ class Comparer:
 
     def work_phase1_traverse(self):
         """Traverse the filesystems"""
-        for dirpath, subdirs, filenames in os.walk(self.fs1):
-            if not self.excluded(dirpath, self.fs1):
-                dirpath = Path(dirpath)
-                dir2path = self.make_fs2_path(dirpath)
-                # Get the dirs and files under dir2path
-                walked_into_dir2path = False
-                for dirpath2_walk, subdirs2_walk, filenames2_walk in os.walk(dir2path):
-                    walked_into_dir2path = True
-                    subdirs2 = subdirs2_walk.copy()
-                    filenames2 = filenames2_walk.copy()
-                    subdirs2_walk.clear()
-                if walked_into_dir2path:
-                    if not dir2path.is_symlink():
-                        self.cmp_list(
-                            subdirs, subdirs2, FileKind.DIR, dirpath, dir2path
-                        )
-                        self.cmp_list(
-                            filenames, filenames2, FileKind.FILE, dirpath, dir2path
-                        )
+        try:
+            self.pbar = Pbar(total=0, desc="Compare ", disable=self.disable_progress)
+            for dirpath, subdirs, filenames in os.walk(self.fs1):
+                if not self.excluded(dirpath, self.fs1):
+                    dirpath = Path(dirpath)
+                    dir2path = self.make_fs2_path(dirpath)
+                    # Get the dirs and files under dir2path
+                    walked_into_dir2path = False
+                    for dirpath2_walk, subdirs2_walk, filenames2_walk in os.walk(dir2path):
+                        walked_into_dir2path = True
+                        subdirs2 = subdirs2_walk.copy()
+                        filenames2 = filenames2_walk.copy()
+                        subdirs2_walk.clear()
+                    if walked_into_dir2path:
+                        if not dir2path.is_symlink():
+                            self.cmp_list(
+                                subdirs, subdirs2, FileKind.DIR, dirpath, dir2path
+                            )
+                            self.cmp_list(
+                                filenames, filenames2, FileKind.FILE, dirpath, dir2path
+                            )
+                        else:
+                            self.error(ErrorKind.MISMATCH, FileKind.DIR, dirpath)
                     else:
-                        self.error(ErrorKind.MISMATCH, FileKind.DIR, dirpath)
-                else:
-                    self.error(
-                        ErrorKind.NOT_EXIST_IN_2, FileKind.DIR, dirpath
-                    )
+                        self.error(
+                            ErrorKind.NOT_EXIST_IN_2, FileKind.DIR, dirpath
+                        )
+        finally:
+            self.pbar.close()
 
     def work_phase2_compare(self):
         """Compare the files in the files_to_compare list"""
-        for path1 in tqdm(self.files_to_compare, disable=self.disable_progress):
-            path2 = self.make_fs2_path(path1)
-            try:
-                res = filecmp.cmp(path1, path2, shallow=self.shallow_compare)
-                if res:
-                    self.ok(FileKind.FILE, path1)
-                else:
-                    self.error(ErrorKind.DIFF, FileKind.FILE, path1)
-            except (PermissionError, OSError) as e:
-                self.error(ErrorKind.NOACCESS, FileKind.FILE, path1, str(e))
+        try:
+            pbar = Pbar(total=len(self.files_to_compare), desc="Compare ", disable=self.disable_progress)
+
+            for path1 in self.files_to_compare:
+                pbar.update()
+                path2 = self.make_fs2_path(path1)
+                try:
+                    res = filecmp.cmp(path1, path2, shallow=self.shallow_compare)
+                    if res:
+                        self.ok(FileKind.FILE, path1)
+                    else:
+                        self.error(ErrorKind.DIFF, FileKind.FILE, path1)
+                except (PermissionError, OSError) as e:
+                    comment = f"{e} as user {utils.get_username()}"
+                    self.error(ErrorKind.NOACCESS, FileKind.FILE, path1, comment)
+
+        finally:
+            pbar.close()
+
 
     def error_report(self):
         """Print error report"""

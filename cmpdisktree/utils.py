@@ -1,12 +1,19 @@
 """
 General utility classes for cmpdisktree
 """
-
+import os
+import pwd
 from enum import Enum, auto
 from pathlib import Path
-from typing import List, TextIO
+import time
+
+from tqdm import tqdm
 import click
 
+
+def get_username():
+    """Find username of invoking user"""
+    return pwd.getpwuid( os.getuid()).pw_name
 
 class FileKind(Enum):
     """Type of file"""
@@ -99,3 +106,33 @@ class LogFile:
             self.fobject = open(self.fpath, 'a')
         print(txt, file=self.fobject)
         self.close_if_needed()
+
+
+class  Pbar(tqdm):
+    BAR_FORMAT_BASE = '{l_bar}{bar}| {n_fmt}/{total_fmt} '
+    BAR_FORMAT_TRAIL = ' '
+
+    def __init__(self, iterable=None, **kwargs):
+        defaults = {
+            'ascii': True,
+            'bar_format': self.BAR_FORMAT_BASE +
+                          'Elap:{elapsed}s Remain:{remaining}s' +
+                          self.BAR_FORMAT_TRAIL
+
+        }
+        for k in defaults:
+            if not k in kwargs:
+                kwargs[k] = defaults[k]
+
+        return super(Pbar, self).__init__(iterable, **kwargs)
+
+    def close(self):
+        self.bar_format = self.BAR_FORMAT_BASE + \
+                          'Total:{elapsed}s                   ' + \
+                          self.BAR_FORMAT_TRAIL
+
+        super(Pbar, self).close()
+        if self.disable:
+            return
+        time.sleep(0.2)
+

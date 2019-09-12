@@ -42,6 +42,12 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
     help="Don't use standard exclusions for macOS disk files systems",
 )
 @click.option(
+    '-l',
+    '--live-fs-exclusions',
+    is_flag=True,
+    help="Add exclusions for live filesystems (e.g. boot volume)",
+)
+@click.option(
     '-r',
     '--relative-fs-top',
     is_flag=True,
