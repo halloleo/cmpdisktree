@@ -13,7 +13,8 @@ import click
 
 def get_username():
     """Find username of invoking user"""
-    return pwd.getpwuid( os.getuid()).pw_name
+    return pwd.getpwuid(os.getuid()).pw_name
+
 
 class FileKind(Enum):
     """Type of file"""
@@ -21,6 +22,7 @@ class FileKind(Enum):
     FILE = 'File'
     DIR = 'Directory'
     SYMLINK = 'Symlink'
+    UNKOWN = 'Unkown'
 
 
 class ErrorKind(Enum):
@@ -31,15 +33,12 @@ class ErrorKind(Enum):
           might be replaced with the file kind or similar
     """
 
+    # The word PATH in the followingen enum values is replaced by FileKind
     NOT_EXIST_IN_1 = 'PATH does not exist in FS1'
-    NOT_EXIST_IN_2 = (
-        'PATH does not exist in FS2'
-    )  # In txt() the word PATH might be replaced file kind
+    NOT_EXIST_IN_2 = 'PATH does not exist in FS2'
     DIFF = 'PATH is different'
     MISMATCH = 'Node type in FS2 is not PATH'
-    NOACCESS = (
-        'No access to PATH (e.g. file permissions)'
-    )  # In txt() the word PATH might be replaced file kind
+    NOACCESS = 'No access to PATH'
 
     def txt(self, fkind: FileKind):
         """Readable description of the error depending on the file kind"""
@@ -84,8 +83,9 @@ class LogFile:
         else:
             dirpath = path.parent
             if not dirpath.is_dir():
-                raise click.BadParameter('Contains a non-existing directory',
-                                         param_hint='output-path')
+                raise click.BadParameter(
+                    'Contains a non-existing directory', param_hint='output-path'
+                )
             if force_default:
                 self.fpath = dirpath.joinpath(default_name)
             else:
@@ -108,31 +108,75 @@ class LogFile:
         self.close_if_needed()
 
 
-class  Pbar(tqdm):
-    BAR_FORMAT_BASE = '{l_bar}{bar}| {n_fmt}/{total_fmt} '
-    BAR_FORMAT_TRAIL = ' '
+class OpMode(Enum):
+    """Operational Mode"""
 
-    def __init__(self, iterable=None, **kwargs):
-        defaults = {
-            'ascii': True,
-            'bar_format': self.BAR_FORMAT_BASE +
-                          'Elap:{elapsed}s Remain:{remaining}s' +
-                          self.BAR_FORMAT_TRAIL
+    TRAVERSE = auto()
+    COMPARE = auto()
 
-        }
+
+class Display(tqdm):
+    """
+    Handle dispaly while using a progress bar
+
+    Based on tqdm with the following additions:
+    - Changed a few defaults
+    - Added a different message on close
+    - Provide a buffered echo function which buffers output until the bar has finished
+    """
+
+    BAR_FORMAT_COMPARE_BASE = '{l_bar}{bar}| {n_fmt}/{total_fmt} '
+
+    def __init__(self, iterable=None, mode: OpMode = None, **kwargs):
+        self.mode = mode
+
+        # Holds the output messages which cannot be dispalyed
+        # while the progressbar is growing
+        self.echo_buffer = []
+
+        defaults = {'ascii': True, 'ncols': 70, 'smoothing': 0}
+        if mode == OpMode.TRAVERSE:
+            defaults['desc'] = 'Traverse'
+            defaults['bar_format'] = "{desc}: {n_fmt} items | {elapsed}s elapsed"
+        if mode == OpMode.COMPARE:
+            defaults['desc'] = 'Compare'
+            defaults['bar_format'] = (
+                self.BAR_FORMAT_COMPARE_BASE
+                + "{elapsed}s elapsed ({remaining}s remain)"
+            )
         for k in defaults:
             if not k in kwargs:
                 kwargs[k] = defaults[k]
 
-        return super(Pbar, self).__init__(iterable, **kwargs)
+        return super(Display, self).__init__(iterable, **kwargs)
 
     def close(self):
-        self.bar_format = self.BAR_FORMAT_BASE + \
-                          'Total:{elapsed}s                   ' + \
-                          self.BAR_FORMAT_TRAIL
+        """
+        Close the progress bar
 
-        super(Pbar, self).close()
+        Has a changed Progressbar message + flushes echo buffer
+        """
+        if self.mode == OpMode.TRAVERSE:
+            self.bar_format = "{desc}: {n_fmt} items | {elapsed}s total"
+        if self.mode == OpMode.COMPARE:
+            self.bar_format = self.BAR_FORMAT_COMPARE_BASE + "{elapsed}s total" + " " * 18
+        # We have to save wait state before super.close(),
+        # because super.close() changes self.disable
+        wait = not self.disable
+        super(Display, self).close()
+        if wait:
+            time.sleep(0.5)
+        self.flush_buffer()
+
+    def echo(self, msg):
+        """Buffer output if progress bar is running """
         if self.disable:
-            return
-        time.sleep(0.2)
+            click.echo(msg)
+        else:
+            self.echo_buffer.append(msg)
 
+    def flush_buffer(self):
+        """Flush the saved messages to screen"""
+        for msg in self.echo_buffer:
+            click.echo(msg)
+        self.echo_buffer = []

@@ -62,7 +62,7 @@ Library/Mobile Documents/*
 Library/Mobile Documents.*
 .webtmp
 # Special files
-/private/tmp/kacta.txt
+/private/tmp/kacta.txt`
 /private/tmp/kactd.txt
 /private/var/audit/*.crash_recovery
 /private/var/audit/current
@@ -83,12 +83,12 @@ ADD_LIVEFS_EXCLUDE_PATTERNS_STR = """
 .DS_Store
 """
 
+
 def pattern_list_from_str(pat_str: str):
     return [
-        pat
-        for pat in pat_str.splitlines()
-        if not (pat.startswith('#') or pat == '')
+        pat for pat in pat_str.splitlines() if not (pat.startswith('#') or pat == '')
     ]
+
 
 STANDARD_EXCLUDE_PATTERNS = pattern_list_from_str(STANDARD_EXCLUDE_PATTERNS_STR)
 ADD_LIVEFS_EXCLUDE_PATTERNS = pattern_list_from_str(ADD_LIVEFS_EXCLUDE_PATTERNS_STR)

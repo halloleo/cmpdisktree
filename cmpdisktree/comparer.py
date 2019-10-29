@@ -8,15 +8,14 @@ import pprint as pp
 import sys
 from logging import DEBUG, ERROR, INFO
 from pathlib import Path
+import errno
 
 import click
 
 from cmpdisktree import debug
 from cmpdisktree import exclusions
-from cmpdisktree.utils import ErrorKind, FileKind, Pbar
+from cmpdisktree.utils import ErrorKind, FileKind, Display, OpMode
 from cmpdisktree import utils
-
-
 
 #
 # Main Class
@@ -31,30 +30,54 @@ class Comparer:
         verbose=False,
         quiet=False,
         report_identical=False,
-        structure_only=False,
+        traversal_only=False,
         shallow_compare=False,
         clear_std_exclusions=False,
         live_fs_exclusions=False,
         relative_fs_top=False,
         output_path=None,
+        # hidden options - not in help or doco:
+        force_progress=None,
     ):
+        """
+
+        :param fs1: Top of filesystem 1
+        :param fs2: Top of filesystem 2
+        :param verbose: Verbose output
+        :param quiet: Report only errors (no progress bar)
+        :param report_identical: Create cmp-ok.log
+        :param traversal_only: Do only phase 1 (traversal)
+        :param shallow_compare: Passed to filecmp
+        :param clear_std_exclusions: No exclusions
+        :param live_fs_exclusions:Add exclusions for live FS
+        :param relative_fs_top: Top doesn't need tio be a macOS disk top
+        :param output_path: Output path for report file
+        :param force_progress: True: show for sure progress bar
+                               False: show for sure NO progress bar
+                               None: let tqdm handle it (depends on tty)
+        """
         # Set parameters
         self.fs1 = Path(fs1)
         self.fs2 = Path(fs2)
 
         self.verbosity = INFO
-        self.disable_progress = None # None means disable on non-tty
+
+        # Set disable_progress to True/False only if force_progress is actively set
+        self.disable_progress = None if force_progress is None else not force_progress
         if quiet:
             self.verbosity = ERROR
-            self.disable_progress = True
+            # Only overwrite disable_progress only if force_progress is not actively set
+            if force_progress is None:
+                self.disable_progress = True
         if verbose:
             self.verbosity = DEBUG
 
+        self.display = None
         self.echo(DEBUG, "main params = \n{}".format(pp.pformat(locals())))
 
         self.report_identical = report_identical
         self.shallow_compare = shallow_compare
-        self.structure_only = structure_only
+        self.traversal_only = traversal_only
         self.clear_std_exclusions = clear_std_exclusions
         self.live_fs_exclusions = live_fs_exclusions
         self.relative_fs_top = relative_fs_top
@@ -69,7 +92,9 @@ class Comparer:
             if self.live_fs_exclusions:
                 self.exclude_patterns.extend(exclusions.ADD_LIVEFS_EXCLUDE_PATTERNS)
 
-        self.echo(DEBUG, "exclude patterns= \n{}".format(pp.pformat(self.exclude_patterns)))
+        self.echo(
+            DEBUG, "exclude patterns= \n{}".format(pp.pformat(self.exclude_patterns))
+        )
 
         # Keep track whether pattern was already used in a first match:
         self.used_exclude_patterns = set([])
@@ -79,11 +104,19 @@ class Comparer:
         self.everything_ok = True
 
         # The log files
-        self.err_log = utils.LogFile(self.output_path, utils.ERR_LOG_DEFAULT_NAME, force_default=False)
-        self.ok_log = utils.LogFile(self.output_path, utils.OK_LOG_DEFAULT_NAME, force_default=True)
+        self.err_log = utils.LogFile(
+            self.output_path, utils.ERR_LOG_DEFAULT_NAME, force_default=False
+        )
+        self.ok_log = utils.LogFile(
+            self.output_path, utils.OK_LOG_DEFAULT_NAME, force_default=True
+        )
 
         # Standard lib filecmp caches file stats.
         filecmp.clear_cache()
+
+    def in_debug_mode(self):
+        """Are in debug mode?"""
+        return self.verbosity <= DEBUG
 
     def add_comment(self, text: str):
         if text is None or text == '':
@@ -104,28 +137,24 @@ class Comparer:
 
     def path_err_text(self, path: Path):
         """Output of paths - Normally only path1, except for DEBUG"""
-        if self.verbosity <= DEBUG:
+        if self.in_debug_mode():
             rel_path = '/' + str(self.make_rel_from_where_ever(path))
             return f"{path} || REL: {rel_path}"
         else:
             return f"{path}"
 
-    def error(
-        self,
-        err: ErrorKind,
-        fkind: FileKind,
-        path: Path,
-        *,
-        comment: str = '',
-    ):
+    def error(self, err: ErrorKind, fkind: FileKind, path: Path, *, comment: str = ''):
         """Report errors"""
         self.everything_ok = False
-        msg = f"Error: {err.txt(fkind)} | {self.path_err_text(path)}" + self.add_comment(comment)
+        msg = (
+            f"Error: {err.txt(fkind)} | {self.path_err_text(path)}"
+            + self.add_comment(comment)
+        )
         self.err_log.write(msg)
 
     def path_ok_text(self, path1, path2: Path):
         """Output of paths - Normally only path1, except for DEBUG"""
-        if self.verbosity <= DEBUG:
+        if self.in_debug_mode():
             return f"{path1} || {path2}"
         else:
             return f"{path1}"
@@ -139,14 +168,24 @@ class Comparer:
             self.ok_log.write(msg)
 
     def echo(self, level, message, *args):
+        """
+        Informational echo output
+
+        Is handled by Display class if instantiated
+        """
         if level >= self.verbosity:
             try:
                 msg = str.format(message, *args)
             except Exception:
                 msg = message
-            if level <= DEBUG:
+
+            if self.in_debug_mode() and level != INFO:
                 msg = f"{logging.getLevelName(level)}: {msg}"
-            click.echo(msg)
+
+            try:
+                self.display.echo(msg)
+            except AttributeError:
+                click.echo(msg)
 
     def make_fs2_path(self, path):
         """
@@ -157,7 +196,7 @@ class Comparer:
 
     def add_to_compare(self, path1: Path):
         """Add to the files_to_compare list"""
-        if not self.structure_only:
+        if not self.traversal_only:
             self.files_to_compare.append(path1)
 
     def cmp_list_symlink_entry(self, ekind, e_in_1, e_in_2):
@@ -190,13 +229,16 @@ class Comparer:
             if ikind is FileKind.FILE:
                 self.add_to_compare(e_in_1)
             else:
-                # DIRs don't need to be compared
-                self.ok(ikind, e_in_1)
+                # Do bot record DIR as identical (because their files might differ)
+                # self.ok(ikind, e_in_1)
+
                 # Keep this entry (a dir) for traversal!
                 keep = True
         else:
             # e_in_2 is a symlink
-            self.error(ErrorKind.MISMATCH, ikind, e_in_2, "FS2 entry is symlink")
+            self.error(
+                ErrorKind.MISMATCH, ikind, e_in_2, comment="FS2 entry is symlink"
+            )
         return keep
 
     def cmp_list(self, master_list, list2, ikind: FileKind, path1: Path, path2: Path):
@@ -213,45 +255,47 @@ class Comparer:
 
         loop_list = master_list.copy()
         reduce_list2 = list2.copy()
-        self.pbar.total += len(loop_list)
         for e in loop_list:
-            self.pbar.update()
             e_in_1 = path1.joinpath(e)
             e_in_2 = path2.joinpath(e)
 
             # Tracks whether entry e can be traversed into
             keep_on_master_list = False
-            try:
-                if e_in_1.is_symlink():
-                    # The "directory" or "file" might be a symlink:
-                    self.cmp_list_symlink_entry(ikind, e_in_1, e_in_2)
-
-                else:
-                    # Real directory or file
-                    if e in reduce_list2:  # this is equivalent to
-                        # `if is_dir/is_file(e_in_2)`
-                        if self.cmp_dir_or_file_entry(ikind, e_in_1, e_in_2):
-                            # Keep this entry (a dir) for traversal!
-                            keep_on_master_list = True
-                    else:
-                        if not self.excluded(e_in_2, self.fs2):
-                            self.error(ErrorKind.NOT_EXIST_IN_2, ikind, e_in_1)
-            except PermissionError as err:
-                debug.dbg_long_exception(err)
-                # We get here if we have a permission error in e1
-                # So lets try the same to e2
+            if not self.excluded(e_in_1,self.fs1):
                 try:
-                    e_in_2.is_symlink()
-                    # e2 is readable, so e1 is a **singular** NOACCESS error
-                    self.error(
-                        ErrorKind.NOACCESS, ikind, e_in_1, 'FS1 entry not accessible'
-                    )
+                    if e_in_1.is_symlink():
+                        # The "directory" or "file" might be a symlink:
+                        self.cmp_list_symlink_entry(ikind, e_in_1, e_in_2)
 
-                except PermissionError as err2:
-                    debug.dbg_long_exception(err2)
-                    self.error(
-                        ErrorKind.NOACCESS, ikind, e_in_2, 'FS2 entry not accessible'
-                    )
+                    else:
+                        # Real directory or file
+                        if e in reduce_list2:  # this is equivalent to
+                            # `if is_dir/is_file(e_in_2)`
+                            if self.cmp_dir_or_file_entry(ikind, e_in_1, e_in_2):
+                                # Keep this entry (a dir) for traversal!
+                                keep_on_master_list = True
+                        else:
+                            if not self.excluded(e_in_2, self.fs2):
+                                self.error(ErrorKind.NOT_EXIST_IN_2, ikind, e_in_1)
+                except PermissionError as err:
+                    debug.dbg_long_exception(err)
+                    # We get here if we have a permission error in e1
+                    # So lets try the same to e2
+                    try:
+                        e_in_2.is_symlink()
+                        # e2 is readable, so e1 is a **singular** NOACCESS error
+                        self.error(
+                            ErrorKind.NOACCESS,
+                            ikind,
+                            e_in_1,
+                            comment="FS1 entry not accessible",
+                        )
+
+                    except PermissionError as err2:
+                        debug.dbg_long_exception(err2)
+                        self.error(
+                            ErrorKind.NOACCESS, ikind, e_in_2, "FS2 entry not accessible"
+                        )
 
             if e in reduce_list2:  # doesn't need to be in list2
                 reduce_list2.remove(e)
@@ -262,9 +306,10 @@ class Comparer:
                 # (if it is a directory)
                 master_list.remove(e)
 
+            self.display.update()
+
         if len(reduce_list2) > 0:
             for extra in reduce_list2:
-                e_in_1 = path1.joinpath(extra)
                 e_in_2 = path2.joinpath(extra)
                 if not self.excluded(e_in_2, self.fs2):
                     self.error(ErrorKind.NOT_EXIST_IN_1, ikind, e_in_2)
@@ -277,7 +322,7 @@ class Comparer:
         :return: Whether path should be excluded
         """
         # path_from_top
-        pathstr = '/'+str(Path(path).relative_to(ref_fs))
+        pathstr = '/' + str(Path(path).relative_to(ref_fs))
 
         for pat in self.exclude_patterns:
             front_only = False
@@ -300,17 +345,37 @@ class Comparer:
                 return True
         return False
 
+    def oswalk_error(self, e:OSError):
+        ikind = FileKind.UNKOWN
+        try:
+            if Path(e.filename).is_dir():
+                ikind = FileKind.DIR
+        except:
+            pass
+
+        if e.errno == errno.EACCES:
+            # Expected Permission Error
+            details = f"{e} " if self.in_debug_mode() else ""
+            comment = f"PermissionError {details}as user {utils.get_username()}"
+        else:
+            comment = f"UNEXPECTED {e}"
+        self.error(ErrorKind.NOACCESS, ikind, e.filename, comment=comment)
+
     def work_phase1_traverse(self):
         """Traverse the filesystems"""
         try:
-            self.pbar = Pbar(total=0, desc="Compare ", disable=self.disable_progress)
-            for dirpath, subdirs, filenames in os.walk(self.fs1):
+            self.display = Display(mode=OpMode.TRAVERSE, disable=self.disable_progress)
+            for dirpath, subdirs, filenames in os.walk(self.fs1, onerror=self.oswalk_error):
+                # Not sure whether the following excluded() call is not/cannot be
+                # covered by the excluded() call in cmp_list...
                 if not self.excluded(dirpath, self.fs1):
                     dirpath = Path(dirpath)
                     dir2path = self.make_fs2_path(dirpath)
                     # Get the dirs and files under dir2path
                     walked_into_dir2path = False
-                    for dirpath2_walk, subdirs2_walk, filenames2_walk in os.walk(dir2path):
+                    for dirpath2_walk, subdirs2_walk, filenames2_walk in os.walk(
+                        dir2path, onerror=self.oswalk_error
+                    ):
                         walked_into_dir2path = True
                         subdirs2 = subdirs2_walk.copy()
                         filenames2 = filenames2_walk.copy()
@@ -326,19 +391,21 @@ class Comparer:
                         else:
                             self.error(ErrorKind.MISMATCH, FileKind.DIR, dirpath)
                     else:
-                        self.error(
-                            ErrorKind.NOT_EXIST_IN_2, FileKind.DIR, dirpath
-                        )
+                        self.error(ErrorKind.NOT_EXIST_IN_2, FileKind.DIR, dirpath)
         finally:
-            self.pbar.close()
+            self.display.close()
 
     def work_phase2_compare(self):
         """Compare the files in the files_to_compare list"""
         try:
-            pbar = Pbar(total=len(self.files_to_compare), desc="Compare ", disable=self.disable_progress)
+            self.display = Display(
+                total=len(self.files_to_compare),
+                mode=OpMode.COMPARE,
+                disable=self.disable_progress,
+            )
 
             for path1 in self.files_to_compare:
-                pbar.update()
+                self.display.update()
                 path2 = self.make_fs2_path(path1)
                 try:
                     res = filecmp.cmp(path1, path2, shallow=self.shallow_compare)
@@ -346,13 +413,16 @@ class Comparer:
                         self.ok(FileKind.FILE, path1)
                     else:
                         self.error(ErrorKind.DIFF, FileKind.FILE, path1)
-                except (PermissionError, OSError) as e:
-                    comment = f"{e} as user {utils.get_username()}"
-                    self.error(ErrorKind.NOACCESS, FileKind.FILE, path1, comment)
+                except PermissionError as e:
+                    details = f"{e} " if self.in_debug_mode() else ""
+                    comment = f"PermissionError {details}as user {utils.get_username()}"
+                    self.error(ErrorKind.NOACCESS, FileKind.FILE, path1, comment=comment)
+                except OSError as e:
+                    comment = f"OSError {e} as user {utils.get_username()}"
+                    self.error(ErrorKind.NOACCESS, FileKind.FILE, path1, comment=comment)
 
         finally:
-            pbar.close()
-
+            self.display.close()
 
     def error_report(self):
         """Print error report"""

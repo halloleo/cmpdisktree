@@ -10,6 +10,7 @@ from tests import tutils
 
 class TestUtils:
     """ Test utils.py (general utility classes)"""
+
     def test_ErrKind_txt(self):
         assert (
             ErrorKind.NOT_EXIST_IN_1.txt(FileKind.FILE) == "File does not exist in FS1"
@@ -26,21 +27,26 @@ class TestUtils:
         )
         assert (
             ErrorKind.NOACCESS.txt(FileKind.FILE)
-            == "No access to File (e.g. file permissions)"
+            == "No access to File"
         )
+
 
 DATA_PATH = Path('basic')
 
 FIVE_LINE_FNAME = 'five-liner.txt'
+
+
 @pytest.fixture()
 def file_with_5_lines():
     with open(FIVE_LINE_FNAME, 'w') as f:
-        for i in range(1,6):
-            print(f"Line numero {i}",file=f)
+        for i in range(1, 6):
+            print(f"Line numero {i}", file=f)
     yield FIVE_LINE_FNAME
+
 
 class TestTutils:
     """ Test tutils.py (utility functions for tests)"""
+
     def test_join_path_with_checks(self):
         with pytest.raises(ValueError):
             assert tutils.join_path_with_checks(DATA_PATH, '')
@@ -57,4 +63,3 @@ class TestTutils:
         assert tutils.num_of_lines('expected-nonexisting.txt', -1) == -1
         with pytest.raises(FileNotFoundError):
             assert tutils.num_of_lines('unexpected-nonexisting.txt', 15) == 15
-

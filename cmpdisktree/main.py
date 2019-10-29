@@ -34,7 +34,12 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
     is_flag=True,
     help=f"Report identical files to file (default: '{utils.OK_LOG_DEFAULT_NAME}')",
 )
-@click.option('-s', '--structure-only', is_flag=True, help="Don't compare file content")
+@click.option(
+    '-1',
+    '--traversal-only',
+    is_flag=True,
+    help="Only traverse FSs (Phase 1). Don't compare file contents",
+)
 @click.option(
     '-c',
     '--clear-std-exclusions',
@@ -56,6 +61,8 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
 @click.option(
     '-o', '--output-path', type=ExpandedPath(), help="Output path for report file."
 )
+# hidden options - not in help or doco:
+@click.option('--force-progress/--force-progress-off', default=None, hidden=True)
 def main(*args, **kwargs):
     """
     Compare the directories FS1 and FS2 as macOS disk structures

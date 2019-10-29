@@ -18,10 +18,10 @@ def num_of_lines(fname, expected):
     try:
         max_line_count = expected + 2
         with open(fname, 'r') as f:
-            cnt =0
+            cnt = 0
             for i, l in enumerate(f):
                 cnt = i
-                if i >  max_line_count:
+                if i > max_line_count:
                     break
         return cnt + 1
     except FileNotFoundError:
@@ -41,7 +41,7 @@ def num_of_ok_lines(ok_lines):
     return num_of_lines(utils.OK_LOG_DEFAULT_NAME, ok_lines)
 
 
-def join_path_with_checks(base, dir, name= None):
+def join_path_with_checks(base, dir, name=None):
     dirname = name if name else "directory"
     if not dir:
         raise ValueError(f"{dirname} cannot be empty")
@@ -53,21 +53,45 @@ def join_path_with_checks(base, dir, name= None):
 
 
 def compare_in(data_path, fs1, fs2, **kwargs):
-    """Run a compare on "filesystems" under data_path"""
+    """
+    Run a compare on "filesystems" under data_path
+
+    :return: True/false whether compare was ok
+    """
     path1 = join_path_with_checks(data_path, fs1, 'fs1')
     path2 = join_path_with_checks(data_path, fs2, 'fs2')
-    cc = comparer.Comparer(path1, path2, **kwargs)
-    return cc.work()
+    cc = comparer.Comparer(path1, path2, force_progress=False, **kwargs)
+    status = cc.work()
+    return status == 0
 
 
 def assert_swap_compare(
-    status, data_path, fs1, fs2, err_lines=-1, ok_lines=-1, **kwargs
+    expected_ok,
+    data_path,
+    fs1,
+    fs2,
+    expected_err_lines=-1,
+    expected_ok_lines=-1,
+    **kwargs,
 ):
+    """Cmpare to FSs a/b and b/a expecing the results should be mirrored"""
+
     # Normal compare
-    assert compare_in(data_path, fs1, fs2, **kwargs) == status
-    assert num_of_err_lines(err_lines) == err_lines
-    assert num_of_ok_lines(ok_lines) == ok_lines
+    actual_ok = compare_in(data_path, fs1, fs2, **kwargs)
+    assert actual_ok == expected_ok
+
+    actual_err_lines = num_of_err_lines(expected_err_lines)
+    assert actual_err_lines == expected_err_lines
+
+    actual_ok_lines = num_of_ok_lines(expected_ok_lines)
+    assert actual_ok_lines == expected_ok_lines
+
     # Swapped compare (should yield the same error stats!)
-    assert compare_in(data_path, fs2, fs1, **kwargs) == status
-    assert num_of_err_lines(err_lines) == err_lines
-    assert num_of_ok_lines(ok_lines) == ok_lines
+    actual_ok = compare_in(data_path, fs2, fs1, **kwargs)
+    assert actual_ok == expected_ok
+
+    actual_err_lines = num_of_err_lines(expected_err_lines)
+    assert actual_err_lines == expected_err_lines
+
+    actual_ok_lines = num_of_ok_lines(expected_ok_lines)
+    assert actual_ok_lines == expected_ok_lines
