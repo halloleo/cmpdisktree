@@ -6,6 +6,7 @@ cmp-ok.log*
 
 # Miscellaneous stuff
 /_extra
+/tests/five-liner.txt
 
 # Pipenv
 Pipfile.lock

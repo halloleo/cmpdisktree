@@ -6,6 +6,7 @@ import pwd
 from enum import Enum, auto
 from pathlib import Path
 import time
+import subprocess
 
 from tqdm import tqdm
 import click
@@ -108,6 +109,27 @@ class LogFile:
         self.close_if_needed()
 
 
+def get_terminal_size():
+    """
+    Determine terminal dimensions
+
+    From tldr.py
+    """
+    def get_terminal_size_stty():
+        try:
+            return map(int, subprocess.check_output(['stty', 'size'],stderr=subprocess.STDOUT).split())
+        except:
+            pass
+
+    def get_terminal_size_tput():
+        try:
+            return map(int, [subprocess.check_output(['tput', 'lines'],stderr=subprocess.STDOUT), subprocess.check_output(['tput', 'cols'])])
+        except:
+            pass
+
+    return get_terminal_size_stty() or get_terminal_size_tput() or (25, 80)
+
+
 class OpMode(Enum):
     """Operational Mode"""
 
@@ -134,7 +156,9 @@ class Display(tqdm):
         # while the progressbar is growing
         self.echo_buffer = []
 
-        defaults = {'ascii': True, 'ncols': 70, 'smoothing': 0}
+        _, columns = get_terminal_size()
+        ncols = min(columns, 80) - 5
+        defaults = {'ascii': True, 'ncols': ncols, 'smoothing': 0}
         if mode == OpMode.TRAVERSE:
             defaults['desc'] = 'Traverse'
             defaults['bar_format'] = "{desc}: {n_fmt} items | {elapsed}s elapsed"
