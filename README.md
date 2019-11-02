@@ -1,24 +1,56 @@
 # cmpdisktree - Compare the directories as macOS disk structures
-              
-      ___                      
-     /\__\            _____              ___     
-    /:/  /           /::\  \           /\__\    
-   /:/  /           /:/\:\  \         /:/  /    
-  /:/  /  ___      /:/  \:\__\       /:/__/     
- /:/__/  /\__\    /:/__/ \:|__|     /::\  \     
- \:\  \ /:/  /    \:\  \ /:/  /    /:/\:\  \    
-  \:\  /:/  /      \:\  /:/  /     \/__\:\  \   
-   \:\/:/  /        \:\/:/  /           \:\  \  
-    \::/  /          \::/  /             \:\__\  
-     \/__/   mp       \/__/   isk         \/__/ ree
 
+```
+      ___
+     /\__\            _____              ___
+    /:/  /           /::\  \           /\__\
+   /:/  /           /:/\:\  \         /:/  /
+  /:/  /  ___      /:/  \:\__\       /:/__/
+ /:/__/  /\__\    /:/__/ \:|__|     /::\  \
+ \:\  \ /:/  /    \:\  \ /:/  /    /:/\:\  \
+  \:\  /:/  /      \:\  /:/  /     \/__\:\  \
+   \:\/:/  /        \:\/:/  /           \:\  \
+    \::/  /          \::/  /             \:\__\
+     \/__/   mp       \/__/   isk         \/__/ ree
+    
+```
 
 ## The Problem
 
-* Symlinks with non-existing target give error in diff, but shouldn't. They
-  should only check whether the target string is the same.
+You make backups from your macOS disk, right? But how can you check that your  important stuff  got copied correctly? Using
 
-## Footnotes to the help screen:
+    diff -r FS1 FS2
+
+gives you so many  errors that it is impossible to use. This is caused by a few different problems, but the main one is: *Symlinks with non-existing target* arereport an error in diff, but for the disk compare we only want to know whether the target strings in the links are the same.
+
+`cmpdisktree` to the rescue! This command line tool compares filesystems ("disks") in a sensible way for backup check. It checks symlinks for same target string and excludes some system directories. It is mainly designed for macOS disks but can be tweak via command line options for other purposes. Here the help message:
+
+```
+Usage: cmpdisktree.py [OPTIONS] FS1 FS2
+
+  Compare the directories FS1 and FS2 as macOS disk structures
+
+  Errors are reported to a file (default 'cmp-err.log')
+
+Options:
+  -v, --verbose               Print debug output.
+  -q, --quiet                 No informational output.
+  -i, --report-identical      Report identical files to file (default: 'cmp-
+                              ok.log')
+  -1, --traversal-only        Only traverse FSs (Phase 1). Don't compare file
+                              contents
+  -c, --clear-std-exclusions  Don't use standard exclusions for macOS disk
+                              files systems
+  -l, --live-fs-exclusions    Add exclusions for live filesystems (e.g. boot
+                              volume)
+  -r, --relative-fs-top       Allow relative filesystem top (used when
+                              applying the exclusions)
+  -o, --output-path PATH      Output path for report file.
+  --help                      Show this message and exit.
+```
+
+
+## Details to some options
 
 (*) `--relative-fs-top`: This makes exclusion patterns with demand to match the 
     beginning of a path name match in the middle of  a path name as well.
@@ -29,3 +61,6 @@
 ## Credits
 
 Thanks to [Kent Nassen](http://www-personal.umich.edu/~knassen/figfonts/isometric2.flf) for the ASCII art
+
+<!--  LocalWords:  cmpdisktree filesystems Symlinks symlinks
+ -->
