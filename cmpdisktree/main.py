@@ -8,8 +8,7 @@ import sys
 
 import click
 
-from cmpdisktree import comparer
-from cmpdisktree import utils
+from cmpdisktree import comparer, utils
 
 
 class ExpandedPath(click.Path):

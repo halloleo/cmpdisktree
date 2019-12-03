@@ -3,7 +3,9 @@ Test for classes and functions in utils.py
 """
 
 from pathlib import Path
+
 import pytest
+
 from cmpdisktree.utils import ErrorKind, FileKind
 from tests import tutils
 

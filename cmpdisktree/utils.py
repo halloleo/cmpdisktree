@@ -3,13 +3,13 @@ General utility classes for cmpdisktree
 """
 import os
 import pwd
+import subprocess
+import time
 from enum import Enum, auto
 from pathlib import Path
-import time
-import subprocess
 
-from tqdm import tqdm
 import click
+from tqdm import tqdm
 
 
 def get_username():

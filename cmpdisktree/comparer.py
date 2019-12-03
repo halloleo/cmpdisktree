@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import errno
 import filecmp
 import fnmatch
 import logging
@@ -8,14 +9,12 @@ import pprint as pp
 import sys
 from logging import DEBUG, ERROR, INFO
 from pathlib import Path
-import errno
 
 import click
 
-from cmpdisktree import debug
-from cmpdisktree import exclusions
-from cmpdisktree.utils import ErrorKind, FileKind, Display, OpMode
-from cmpdisktree import utils
+from cmpdisktree import debug, exclusions, utils
+from cmpdisktree.utils import Display, ErrorKind, FileKind, OpMode
+
 
 #
 # Main Class

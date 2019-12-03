@@ -4,8 +4,7 @@ Utility functions for cmpdisktree tests
 
 from pathlib import Path
 
-from cmpdisktree import comparer
-from cmpdisktree import utils
+from cmpdisktree import comparer, utils
 
 
 def num_of_lines(fname, expected):

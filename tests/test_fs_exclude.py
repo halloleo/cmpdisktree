@@ -6,7 +6,6 @@ from pathlib import Path
 
 from tests.tutils import assert_swap_compare
 
-
 DATA_PATH = Path('exclude')
 
 

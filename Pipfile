@@ -5,17 +5,14 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
-mypy = "*"
-isort = "*"
-flake8 = "*"
-black = "*"
+# black = "*" (global install)
+# invoke = "*" (global install)
+setuptools = "*"
+wheel = "*"
+twine = "*"
+# isort = "*" (global install)
+bump2version = "*"
 
 [packages]
 click = "*"
 tqdm = "*"
-
-[requires]
-python_version = "3.7"
-
-[pipenv]
-allow_prereleases = true

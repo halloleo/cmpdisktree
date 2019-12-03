@@ -9,7 +9,6 @@ from pathlib import Path
 
 from tests.tutils import assert_swap_compare
 
-
 DATA_PATH = Path('symlinks')
 if 'Dropbox' in str(DATA_PATH.absolute().resolve()):
     SECONDARY_TEST_TOP = Path('~/data/devel/files/cmpdisktree')

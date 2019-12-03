@@ -5,10 +5,10 @@ Note: The `noaccess` folder is always outside the git system.
 """
 
 from pathlib import Path
+
 import pytest
 
 from tests.tutils import assert_swap_compare
-
 
 DATA_PATH = Path('noaccess')
 SECONDARY_TEST_TOP = Path('~/data/devel/files/cmpdisktree')
