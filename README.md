@@ -21,7 +21,7 @@ You make backups from your macOS disk, right? But how can you check that your  i
 
     diff -r FS1 FS2
 
-gives you so many errors that the comamnd is impossible to use. This is caused by a few different problems, but the main one is: *Symlinks with non-existing target* are reported as errors in diff, but for a disk compare we only want to know whether the target strings in the links are the same, not whether the taragets exist.
+gives you so many errors that the command is impossible to use. This is caused by a few different problems, but the main one is: *Symlinks with non-existing target* are reported as errors in diff, but for a disk compare we only want to know whether the target strings in the links are the same, not whether the targets exist.
 
 `cmpdisktree` to the rescue! This command line tool compares filesystems ("disks") in a sensible way for backup check. It checks symlinks for same target string and excludes some system directories. It is mainly designed for macOS disks but can be tweak via command line options for other purposes. Here the help message:
 

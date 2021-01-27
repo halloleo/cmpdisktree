@@ -49,7 +49,8 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
     '-l',
     '--live-fs-exclusions',
     is_flag=True,
-    help="Add exclusions for live filesystems (e.g. boot volume)",
+    help="Add exclusions for live filesystems (e.g. boot volumes or filesystems "
+         "you've looked at in the Finder)",
 )
 @click.option(
     '-r',
