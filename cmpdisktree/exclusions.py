@@ -1,10 +1,11 @@
 """
 The default exclusion list
 Data from https://bombich.com/kb/ccc5/some-files-and-folders-are-automatically-excluded-from-backup-task
+Last updated 2021-01-27
 """
 
 STANDARD_EXCLUDE_PATTERNS_STR = """
-# File system implementation details
+# Filesystem implementation details
 .HFS+ Private Directory Data*
 /.journal
 /.journal_info_block
@@ -22,12 +23,15 @@ Network Trash Folder
 .VolumeIcon.icns
 /System/Library/CoreServices/.disk_label*
 /TheVolumeSettingsFolder
+/private/var/db/dslocal/nodes/Default/secureaccesstoken.plist
 # Apple-proprietary data stores
 .DocumentRevisions-V100*
 .Spotlight-V100
 /.fseventsd
 /.hotfiles.btree
 /private/var/db/systemstats
+/private/var/folders/*/*/C
+/private/var/folders/*/*/T
 # Volume-specific cache files
 /private/var/db/dyld/dyld_*
 /System/Library/Caches/com.apple.bootstamps/*
@@ -62,7 +66,7 @@ Library/Mobile Documents/*
 Library/Mobile Documents.*
 .webtmp
 # Special files
-/private/tmp/kacta.txt`
+/private/tmp/kacta.txt
 /private/tmp/kactd.txt
 /private/var/audit/*.crash_recovery
 /private/var/audit/current
@@ -77,10 +81,20 @@ $Recycle.Bin
 Library/Preferences/ByHost/com.apple.loginwindow*
 .dropbox.cache
 /private/var/db/atpstatdb*
+.@__thumb
+/.com.prosofteng.DrivePulse.ignore
+com.apple.photolibraryd/tmpoutboundsharing
 """
 
 ADD_LIVEFS_EXCLUDE_PATTERNS_STR = """
 .DS_Store
+/.PKInstallSandboxManager-SystemSoftware
+/private/var/spool/postfix
+/private/var/folders
+/private/var/db
+/private/var/log
+/private/var/run
+Library/Caches
 """
 
 

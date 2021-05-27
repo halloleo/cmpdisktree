@@ -50,7 +50,15 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
     '--live-fs-exclusions',
     is_flag=True,
     help="Add exclusions for live filesystems (e.g. boot volumes or filesystems "
-         "you've looked at in the Finder)",
+         "you've looked at in the Finder) plus various (experimental) cache "
+         "exclusions",
+)
+@click.option(
+    '-m',
+    '--ignore-missing-in-FS1',
+    is_flag=True,
+    help="Ignore when a file from FS2 doesn't exist in FS1 (used for boot "
+         "backups where FS1 is the live disk)",
 )
 @click.option(
     '-r',

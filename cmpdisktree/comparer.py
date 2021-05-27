@@ -33,6 +33,7 @@ class Comparer:
         shallow_compare=False,
         clear_std_exclusions=False,
         live_fs_exclusions=False,
+        ignore_missing_in_fs1=False,
         relative_fs_top=False,
         output_path=None,
         # hidden options - not in help or doco:
@@ -79,6 +80,7 @@ class Comparer:
         self.traversal_only = traversal_only
         self.clear_std_exclusions = clear_std_exclusions
         self.live_fs_exclusions = live_fs_exclusions
+        self.ignore_missing_in_fs1 = ignore_missing_in_fs1
         self.relative_fs_top = relative_fs_top
         self.output_path = output_path
 
@@ -310,7 +312,8 @@ class Comparer:
         if len(reduce_list2) > 0:
             for extra in reduce_list2:
                 e_in_2 = path2.joinpath(extra)
-                if not self.excluded(e_in_2, self.fs2):
+                if not self.excluded(e_in_2, self.fs2) and \
+                   not self.ignore_missing_in_fs1:
                     self.error(ErrorKind.NOT_EXIST_IN_1, ikind, e_in_2)
 
     def excluded(self, path, ref_fs):
@@ -429,16 +432,18 @@ class Comparer:
         with open(self.err_log.fpath, 'r') as f:
             report = []
             more = False
-            for i, l in enumerate(f):
+
+            for i, l in enumerate(f,1):
                 if i >= num_of_lines:
                     more = True
-                    break
-                report.append(l)
+                else:
+                    report.append(l)
+
         if more:
             self.echo(
                 INFO,
                 f"Compare errors - First {num_of_lines} lines below "
-                f"(for more see file '{self.err_log.fpath}'):",
+                f"(for all {i} lines see file '{self.err_log.fpath}'):",
             )
         else:
             self.echo(
