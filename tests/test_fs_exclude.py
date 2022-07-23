@@ -52,7 +52,6 @@ class TestWithStdExclude:
 
 
 class TestNoStdExclude:
-
     # Number of errors for the first tests
     ERRORS_IN_FS = 3
 

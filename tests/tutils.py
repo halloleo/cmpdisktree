@@ -73,7 +73,7 @@ def assert_swap_compare(
     expected_ok_lines=-1,
     **kwargs,
 ):
-    """Cmpare to FSs a/b and b/a expecing the results should be mirrored"""
+    """Compare two FSs a/b and b/a expecing the results should be mirrored"""
 
     # Normal compare
     actual_ok = compare_in(data_path, fs1, fs2, **kwargs)
