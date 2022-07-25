@@ -30,6 +30,7 @@ class Comparer:
         quiet=False,
         report_identical=False,
         traversal_only=False,
+        traverse_from_list=None,
         shallow_compare=False,
         clear_std_exclusions=False,
         live_fs_exclusions=False,
@@ -47,9 +48,10 @@ class Comparer:
         :param quiet: Report only errors (no progress bar)
         :param report_identical: Create cmp-ok.log
         :param traversal_only: Do only phase 1 (traversal)
+        :param traverse_from_list: Use file with  list of paths for traversal
         :param shallow_compare: Passed to filecmp
         :param clear_std_exclusions: No exclusions
-        :param live_fs_exclusions:Add exclusions for live FS
+        :param live_fs_exclusions: Add exclusions for live FS
         :param relative_fs_top: Top doesn't need tio be a macOS disk top
         :param output_path: Output path for report file
         :param force_progress: True: show for sure progress bar
@@ -78,6 +80,7 @@ class Comparer:
         self.report_identical = report_identical
         self.shallow_compare = shallow_compare
         self.traversal_only = traversal_only
+        self.traverse_from_list = traverse_from_list
         self.clear_std_exclusions = clear_std_exclusions
         self.live_fs_exclusions = live_fs_exclusions
         self.ignore_missing_in_fs1 = ignore_missing_in_fs1
@@ -365,6 +368,7 @@ class Comparer:
 
     def work_phase1_traverse(self):
         """Traverse the filesystems"""
+        self.echo(DEBUG, "*** TRAVERSAL PHASE")
         try:
             self.display = Display(mode=OpMode.TRAVERSE, disable=self.disable_progress)
             for dirpath, subdirs, filenames in os.walk(self.fs1, onerror=self.oswalk_error):
@@ -397,8 +401,16 @@ class Comparer:
         finally:
             self.display.close()
 
+    def work_phase1_from_list(self, traverse_from_list: str):
+        self.echo(DEBUG, "*** READ TRAVERSAL LIST")
+        travlistp = Path(traverse_from_list)
+        with open(travlistp) as travlistf:
+            for l in map(str.strip, travlistf.readlines()):
+                self.add_to_compare(str(self.fs1 / l))
+
     def work_phase2_compare(self):
         """Compare the files in the files_to_compare list"""
+        self.echo(DEBUG, "*** COMPARE PHASE")
         try:
             self.display = Display(
                 total=len(self.files_to_compare),
@@ -455,7 +467,14 @@ class Comparer:
 
     def work(self):
         try:
-            self.work_phase1_traverse()
+            if self.traverse_from_list is None:
+                # Normal case: generate files_to_compare by traversal
+                # self.echo(DEBUG,
+                self.work_phase1_traverse()
+            else:
+                # Special case: Get files_to_compare from external file
+                self.work_phase1_from_list(self.traverse_from_list)
+
             # debug.dbg_print_ftc_list(self.files_to_compare)
             self.work_phase2_compare()
         finally:

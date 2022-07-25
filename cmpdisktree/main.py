@@ -40,6 +40,12 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
     help="Only traverse FSs (Phase 1). Don't compare file contents",
 )
 @click.option(
+    '-t',
+    '--traverse-from-list',
+    type=ExpandedPath(exists=True),
+    help="Path of file with list of relative paths for traversal"
+)
+@click.option(
     '-c',
     '--clear-std-exclusions',
     is_flag=True,
