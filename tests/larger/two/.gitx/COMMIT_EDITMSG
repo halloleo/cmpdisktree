@@ -1,0 +1,25 @@
+Move to tasks.py/invoke + versioning support
+
+* Publish tools into Pipfile
+* Setup format tools
+* Integrate bumpversion
+* Option `--version`
+* Vernon number moves to __init__.py
+* Move from Makefile to tasks.py/invoke
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch master
+# Your branch is up to date with 'origin/master'.
+#
+# Changes to be committed:
+#	deleted:    Makefile
+#	modified:   Pipfile
+#	modified:   moreman/__init__.py
+#	modified:   moreman/main.py
+#	modified:   pyproject.toml
+#	new file:   setup.cfg
+#	modified:   setup.py
+#	new file:   tasks.py
+#

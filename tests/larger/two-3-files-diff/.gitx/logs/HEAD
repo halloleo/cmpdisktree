@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 a368d6e0ed360b9e8ce538bba051639b775e0a2b broleo <leo.broska@crimecommission.gov.au> 1509939641 +1100	commit (initial): Initial version
+a368d6e0ed360b9e8ce538bba051639b775e0a2b 690b2220bf0cf0fd418b66629782abcca59d78a5 halloleo <git@halloleo.dot.hailmail.dot.net> 1509952542 +1100	commit: Delete tmp files properly
+690b2220bf0cf0fd418b66629782abcca59d78a5 8b63598395d516e7a3cd44b5a79104b283f7cf4a halloleo <git@halloleo.dot.hailmail.dot.net> 1509952611 +1100	commit: ReadMe with installation etc
+8b63598395d516e7a3cd44b5a79104b283f7cf4a b4983daa2f09de2035eec578a4fc47c08ee4ec94 halloleo <git@halloleo.dot.hailmail.dot.net> 1510127098 +1100	commit: Make sub commands help work
+b4983daa2f09de2035eec578a4fc47c08ee4ec94 f12a390b83bee0ccbdcbf9f96f021a9b6af5ee7d albatross <alba@flytheplanet.local> 1525245318 +1000	pull: Fast-forward
+f12a390b83bee0ccbdcbf9f96f021a9b6af5ee7d ec9dc6b4b106d1ef98bb053c1752fc10f3b7cf82 albatross <alba@flytheplanet.local> 1525245378 +1000	commit: Commit TODO file
+ec9dc6b4b106d1ef98bb053c1752fc10f3b7cf82 9d72b1e86f601709e8eacc8e5a719d0dcc0b3674 halloleo <git@halloleo.dot.hailmail.dot.net> 1568709678 +1000	commit: Make moreman a package
+9d72b1e86f601709e8eacc8e5a719d0dcc0b3674 c53378d079f7d48777a98670549db06aa950a3c1 halloleo <git@halloleo.dot.hailmail.dot.net> 1568933653 +1000	commit: Update Readme for pip install
+c53378d079f7d48777a98670549db06aa950a3c1 9916dadac56ed01a38ef712a0dc2fd2453ab68b1 halloleo <git@halloleo.dot.hailmail.dot.net> 1571207199 +1100	commit: --force Option, etc
+9916dadac56ed01a38ef712a0dc2fd2453ab68b1 c2ece3c25512e668eb932260a845745c1f568fcb halloleo <git@halloleo.dot.hailmail.dot.net> 1571207318 +1100	commit: Getting rid of makefile (lower case)
+c2ece3c25512e668eb932260a845745c1f568fcb 346bc4e7fdbd3ff1ba8b13b5ca76c333e9c834c3 halloleo <git@halloleo.dot.hailmail.dot.net> 1571207396 +1100	commit: Get Makefile (uppercase) back
+346bc4e7fdbd3ff1ba8b13b5ca76c333e9c834c3 2bdcd5ad1f5d6da567b7c7fbb2db739e6fb7ac6a halloleo <git@halloleo.dot.hailmail.dot.net> 1571209298 +1100	commit: Blackify code
+2bdcd5ad1f5d6da567b7c7fbb2db739e6fb7ac6a e5129de588cc91f1bf4d888b9ed4869e5b794e42 halloleo <git@halloleo.dot.hailmail.dot.net> 1571545132 +1100	commit: Move to tasks.py/invoke + versioning support
