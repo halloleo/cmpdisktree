@@ -8,7 +8,7 @@ import sys
 
 import click
 
-from cmpdisktree import comparer, utils
+from cmpdisktree import comparer, utils, __version__
 
 
 class ExpandedPath(click.Path):
@@ -25,8 +25,8 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
 )
 @click.argument('fs1', type=ExpandedPath(exists=True))
 @click.argument('fs2', type=ExpandedPath(exists=True))
-@click.option('-v', '--verbose', is_flag=True, help="Print debug output.")
-@click.option('-q', '--quiet', is_flag=True, help="No informational output.")
+@click.option('-v', '--verbose', is_flag=True, help="Print debug output")
+@click.option('-q', '--quiet', is_flag=True, help="No informational output")
 @click.option(
     '-i',
     '--report-identical',
@@ -49,15 +49,14 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
     '-c',
     '--clear-std-exclusions',
     is_flag=True,
-    help="Don't use standard exclusions for macOS disk files systems",
+    help="Don't apply the standard exclusions for macOS disk files systems (i.e. "
+         "compare everything)",
 )
 @click.option(
     '-l',
     '--live-fs-exclusions',
     is_flag=True,
-    help="Add exclusions for live filesystems (e.g. boot volumes or filesystems "
-         "you've looked at in the Finder) plus various (experimental) cache "
-         "exclusions",
+    help="Add exclusions for live filesystems (e.g. boot volumes)"
 )
 @click.option(
     '-m',
@@ -77,6 +76,7 @@ Errors are reported to a file (default '{utils.ERR_LOG_DEFAULT_NAME}')
 )
 # hidden options - not in help or doco:
 @click.option('--force-progress/--force-progress-off', default=None, hidden=True)
+@click.version_option(version=__version__)
 def main(*args, **kwargs):
     """
     Compare the directories FS1 and FS2 as macOS disk structures

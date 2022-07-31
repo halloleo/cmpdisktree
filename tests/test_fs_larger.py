@@ -22,6 +22,9 @@ class TestFSLarger:
         # AND a 'Directory does not exist in FS1' line, so in 2 lines.
         assert_swap_compare(False, DATA_PATH, 'one', 'two-2-dirs-diff', 3)
 
+    def test_symlink_and_file_diff(self):
+        assert_swap_compare(False, DATA_PATH, 'one', 'two-1-symlink-diff', 2)
+
 
 class TestFSLargerStructureOnly:
     def test_same(self):

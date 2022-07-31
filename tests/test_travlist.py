@@ -24,6 +24,13 @@ class TestTravListBasic:
         assert_swap_compare(True, DATA_PATH_BASIC, 'a', 'b-file-diff',
                             traverse_from_list=travpath)
 
+    def test_same_dir_in_diff(self):
+        travpath = join_path_with_checks(DATA_PATH_BASIC,
+                                         'dir-only-list.txt',
+                                        'traverse_from_list')
+        assert_swap_compare(True, DATA_PATH_BASIC, 'a', 'b-file-diff',
+                            traverse_from_list=travpath)
+
     def test_diff_in_diff(self):
         travpath = join_path_with_checks(DATA_PATH_BASIC, 'file-txt-only-list.txt',
                                         'traverse_from_list')
@@ -50,9 +57,30 @@ class TestTravListLarger:
         assert_swap_compare(True, DATA_PATH_LARGER, 'one', 'two-3-files-diff',
                             traverse_from_list=travpath)
 
-    def test_same_files_in_diff(self):
+    def test_same_files_plus_nonexists_in_diff(self):
         travpath = join_path_with_checks(DATA_PATH_LARGER,
                                          'spare-changed-files-plus-nonexist-list.txt',
                                         'traverse_from_list')
         assert_swap_compare(False, DATA_PATH_LARGER, 'one', 'two-3-files-diff', 1,
+                            traverse_from_list=travpath)
+
+    def test_same_files_plus_same_dirs_in_diff(self):
+        travpath = join_path_with_checks(DATA_PATH_LARGER,
+                                         'spare-changed-files-plus-dirs-list.txt',
+                                        'traverse_from_list')
+        assert_swap_compare(True, DATA_PATH_LARGER, 'one', 'two-3-files-diff',
+                            traverse_from_list=travpath)
+
+    def test_same_symlinks_in_diff(self):
+        travpath = join_path_with_checks(DATA_PATH_LARGER,
+                                         'symlinks-list.txt',
+                                        'traverse_from_list')
+        assert_swap_compare(True, DATA_PATH_LARGER, 'one', 'two-3-files-diff',
+                            traverse_from_list=travpath)
+
+    def test_diff_symlinks_in_diff(self):
+        travpath = join_path_with_checks(DATA_PATH_LARGER,
+                                         'symlinks-list.txt',
+                                        'traverse_from_list')
+        assert_swap_compare(False, DATA_PATH_LARGER, 'one', 'two-1-symlink-diff', 1,
                             traverse_from_list=travpath)

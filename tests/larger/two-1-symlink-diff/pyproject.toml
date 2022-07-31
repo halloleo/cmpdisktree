@@ -1,0 +1,30 @@
+[tool.black]
+this-one-is-changed = true
+skip-string-normalization = true
+line-length = 80
+target-version  = ['py36','py37']
+exclude = '''
+# Directory exclusions
+/(
+    _extra
+  | \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+| # File exclusions
+/(
+    moreman/arghex\.py
+)'''
+verbose = true
+
+[tool.isort]
+line-length = 80
+verbose = true
+skip = ['moreman/arghex.py']

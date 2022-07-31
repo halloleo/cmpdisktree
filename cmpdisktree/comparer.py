@@ -216,7 +216,7 @@ class Comparer:
             else:
                 self.error(ErrorKind.DIFF, FileKind.SYMLINK, e_in_1)
         except OSError:
-            # entry still might exists (just not a symlink!
+            # entry still might exists (just not a symlink!)
             if e_in_2.exists():
                 self.error(ErrorKind.MISMATCH, FileKind.SYMLINK, e_in_1)
             else:
@@ -406,7 +406,27 @@ class Comparer:
         travlistp = Path(traverse_from_list)
         with open(travlistp) as travlistf:
             for l in map(str.strip, travlistf.readlines()):
-                self.add_to_compare(str(self.fs1 / l))
+                self.add_to_compare(self.fs1 / l)
+
+    def phase2_compare_file(self, path1, path2: Path):
+        """Do real compare for a FILE"""
+        res = filecmp.cmp(path1, path2, shallow=self.shallow_compare)
+        if res:
+            self.ok(FileKind.FILE, path1)
+        else:
+            self.error(ErrorKind.DIFF, FileKind.FILE, path1)
+
+    def phase2_compare_symlink(self, path1, path2):
+        """Do the compare for a DIR: Just check that both are dirs"""
+        self.cmp_list_symlink_entry(FileKind.SYMLINK, path1, path2)
+
+    def phase2_compare_dir(self, path1, path2):
+        """Do the compare for a DIR: Just check that both are dirs"""
+        res = path1.is_dir and path2.is_dir()
+        if res:
+            self.ok(FileKind.DIR, path1)
+        else:
+            self.error(ErrorKind.DIFF, FileKind.DIR, path1)
 
     def work_phase2_compare(self):
         """Compare the files in the files_to_compare list"""
@@ -422,11 +442,12 @@ class Comparer:
                 self.display.update()
                 path2 = self.make_fs2_path(path1)
                 try:
-                    res = filecmp.cmp(path1, path2, shallow=self.shallow_compare)
-                    if res:
-                        self.ok(FileKind.FILE, path1)
+                    if path1.is_dir():
+                        self.phase2_compare_dir(path1, path2)
+                    elif path1.is_symlink():
+                        self.phase2_compare_symlink(path1, path2)
                     else:
-                        self.error(ErrorKind.DIFF, FileKind.FILE, path1)
+                        self.phase2_compare_file(path1, path2)
                 except PermissionError as e:
                     details = f"{e} " if self.in_debug_mode() else ""
                     comment = f"PermissionError {details}as user {utils.get_username()}"
