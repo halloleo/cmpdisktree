@@ -13,3 +13,7 @@
 ### 28-Jan-2021
 
 - [ ] What is with exclude stuff in test without -r?
+
+### 3 Aug 2022
+
+- [ ] When called via sudo find a way to write the logs as the underlying user.

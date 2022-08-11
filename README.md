@@ -17,15 +17,34 @@
 
 ## The Problem
 
-You make backups from your macOS disk, right? But how can you check that your  important stuff  got copied correctly? Using
+You make backups from your macOS disk, right? But how can you check that your important stuff  got copied correctly? Using `diff` in the terminal like this
 
     diff -r FS1 FS2
 
-gives you so many errors that the command is impossible to use. This is caused by a few separate problems, but the main one is: **Symlinks with non-existing target are reported as errors by `diff`**, but for a disk compare we only want to know whether the target paths in the links are the same, not whether the targets exist.
+gives you so many errors that the command is impossible to use. This is caused by a few separate problems, but the main one is: `diff` reports **symlinks with non-existing target as errors**, but for a disk compare we only want to know whether the target paths in the links are the same, not whether the targets exist.
 
-`cmpdisktree` to the rescue! This command line tool compares filesystems ("disks") in a sensible way for backup check. It checks symlinks for same target path and excludes by default some system directories. It is mainly designed for macOS disks but via some options it can  be tweaked for other purposes. 
+**cmpdisktree** to the rescue! This command line tool compares filesystems ("disks") in a sensible way for backup check. It checks symlinks for same target path and excludes by default some system directories. It is mainly designed for macOS disks but via some options it can  be tweaked for other purposes. 
 
-Here the help message:
+## A Better Approach
+
+**cmpdisktree** takes two directories as command line parameters. These are often a system disk on one volume and its backup on another. That's  why I call them filesystems FS1 and FS2. cmpdisktree  compares theses filesystems in two phases, the **Traversal Phase** and the **Compare Phase**.
+
+The Traversal Phase
+:   In the first phase cmpdisktree goes through the directory tree of FS1 by recursively looking at files, directories and symlinks in each directory. Files which exist in FS1 and FS2 are then marked for later compare of the content while directories and symlinks are compared straight away: directories for the same entries and symlinks for that they point to the same (existing or non-existing) target.
+
+The Content Compare Phase
+:   In this second phase cmpdisktree compares the content of the files in FS1 and FS2 which were marked during the traversal phase. The comparing is done in a "non-shallow" way, byte for byte. Deending on the size of the filesystems this can take a long time, so phase 2 can be disabled  (option `--traversal-only`) if a compare of the directory structure seems to be good enough.
+
+## Tailoring and Sampling
+
+In the traversal phase cmpdisktree applies a list of exclusion patterns. If a directory or file matches one of the exclusions it will not be compared, **so differences are not reported**. This list is adapted from [Carbon Copy Cloner's exclusion list][exclusion-source]. It is heavily tailored towards macOS system disks. You can completely swiych this off via `--clear-std-exclusions` or add more exclusions (like for `.DS_Store` files) via `--live-fs-exclusions`. For details see below.
+
+The compare phase can be used without traversal phase and alternatively be controlled by an external file (option `--traverse-from-list`). This is quite a unique option which disables the _traversal_ phase; instead the paths of the files to compare are read from a text file. This makes sense when from _very_ large disks only a portion  of files (e.g. a random sample) should be compared. The sample is provided via the external file.
+
+
+## The Help message
+
+For details about other ways to customise the cmpdisktree's behaviour here the help message:
 
 ```
 Usage: cmpdisktree.py [OPTIONS] FS1 FS2
@@ -65,9 +84,9 @@ Options:
 ```
 
 
-## Details to some options
+## More Details to Some Options
 
-`--output-path PATH`: 
+`--output-path PATH`
 :   Set where the output should go:  
     If the path of a _file_ is given, use this file as error log file and write 
     (if applicable) the OK log to `cmp-ok.log`
@@ -75,30 +94,57 @@ Options:
     if the path of a _directory_ is given, write `cmp-err.log` and `cmp-ok.log`
     in this directory.
 
-`--relative-fs-top`: 
+`--relative-fs-top`
 :   Normally exclusion patterns which match only at the _beginning_ of a path
     name have to start with that pattern as expected. This option widens the
     match to the middle of a path name as well. This is useful if you want to
     check on boot filesystems which you have copied deeper into a file system.
 
-`--live-fs-exclusions`:
+`--live-fs-exclusions`
 :   Use additional exclusions which ignore files like .DS_Store. This helps to
     compare "life" filesystems as the same even if these files have changed
     (e.g. by looking at the file structure in Finder). This adds some various
     (experimental) cache exclusions as well.
 
-`--traverse-from-list PATH`: 
+`--traverse-from-list PATH`
 :   Do not traverse the filesystem; instead use the list of relative paths
     given in a text file (one path per line). The paths are relative to the
     starting directories `FS1`/`FS2`.  
-    Note: Only paths to normal _files_ are compare for same
-    content. _Directories are only checked for existence in FS1 and FS2;
-    _symlinks_ are only checked that they point to the same target
+    Note: Only paths to normal _files_ are compares for same content. 
+    _Directories_ are only checked for existence in FS1 and FS2;
+    with _symlinks_ is only checked that they point to the same target.
+
+
+## Version History
+
+Version 0.2
+:   
+* Option `--traverse-from-list` is implemented. 
+* Minor improvement to exclusion list, etc.
+
+Version 0.1
+:   
+* Compare while reporting progress bar
+* Option `--clear-std-exclusions` to compare _all_ files in the filesystems.
 
 
 ## Credits
 
-Thanks to Kent Nassen and Lennert Stock for the [ASCII art characters](http://www-personal.umich.edu/~knassen/figfonts/isometric2.flf).
+Thanks to:
+
+* Kent Nassen and Lennert Stock for the [ASCII art characters][ascii]
+* Armin Ronacher and contributors for [click]
+* Casper da Costa-Luis and contributors for [tqdm]
+* Mike Bombich for [Carbon Copy Cloner][ccc][^1] and its exclusion list.
+
+  [^1]: Backup tools like Carbon Copy Clonergave me the resaon to develop cmpdisktree in the first place.
+
+  [exclusion-source]: https://bombich.com/kb/ccc5/some-files-and-folders-are-automatically-excluded-from-backup-task
+  [ascii]: http://www-personal.umich.edu/~knassen/figfonts/isometric2.flf
+  [click]: https://github.com/pallets/click
+  [tqdm]: https://github.com/tqdm/tqdm
+  [ccc]: https://bombich.com/
+
 
 <!--  LocalWords:  cmpdisktree filesystem filesystems Symlinks symlinks
  -->
