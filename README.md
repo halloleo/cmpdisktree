@@ -27,18 +27,6 @@ gives you so many errors that the command is impossible to use. This is caused b
 
 ## A Better Approach
 
-<dl>
-  <dt>Lower cost</dt><dd>
-
-The new version of this product costs significantly less than the previous one!</dd>
-  <dt><strong>Easier to use</strong></dt>
-  <dd>We've changed the product so that it's much easier to use!</dd>
-  <dt><strong>Safe for kids</strong></dt>
-  <dd>You can leave your kids alone in a room with this product and they
-      won't get hurt (not a guarantee).</dd>
-</dl>
-
-
 **cmpdisktree** takes two directories as command line parameters. These are often a system disk on one volume and its backup on another. That's  why I call them filesystems FS1 and FS2. cmpdisktree  compares theses filesystems in two phases, the **Traversal Phase** and the **Compare Phase**.
 
 <dl>
