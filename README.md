@@ -27,13 +27,31 @@ gives you so many errors that the command is impossible to use. This is caused b
 
 ## A Better Approach
 
+<dl>
+  <dt>Lower cost</dt><dd>
+
+The new version of this product costs significantly less than the previous one!</dd>
+  <dt><strong>Easier to use</strong></dt>
+  <dd>We've changed the product so that it's much easier to use!</dd>
+  <dt><strong>Safe for kids</strong></dt>
+  <dd>You can leave your kids alone in a room with this product and they
+      won't get hurt (not a guarantee).</dd>
+</dl>
+
+
 **cmpdisktree** takes two directories as command line parameters. These are often a system disk on one volume and its backup on another. That's  why I call them filesystems FS1 and FS2. cmpdisktree  compares theses filesystems in two phases, the **Traversal Phase** and the **Compare Phase**.
 
-The Traversal Phase
-:   In the first phase cmpdisktree goes through the directory tree of FS1 by recursively looking at files, directories and symlinks in each directory. Files which exist in FS1 and FS2 are then marked for later compare of the content while directories and symlinks are compared straight away: directories for the same entries and symlinks for that they point to the same (existing or non-existing) target.
+<dl>
+<dt>The Traversal Phase</dt><dd>
 
-The Content Compare Phase
-:   In this second phase cmpdisktree compares the content of the files in FS1 and FS2 which were marked during the traversal phase. The comparing is done in a "non-shallow" way, byte for byte. Deending on the size of the filesystems this can take a long time, so phase 2 can be disabled  (option `--traversal-only`) if a compare of the directory structure seems to be good enough.
+In the first phase cmpdisktree goes through the directory tree of FS1 by recursively looking at files, directories and symlinks in each directory. Files which exist in FS1 and FS2 are then marked for later compare of the content while directories and symlinks are compared straight away: directories for the same entries and symlinks for that they point to the same (existing or non-existing) target.
+</dd>
+
+<dt>The Content Compare Phase</dt><dd>
+
+In this second phase cmpdisktree compares the content of the files in FS1 and FS2 which were marked during the traversal phase. The comparing is done in a "non-shallow" way, byte for byte. Deending on the size of the filesystems this can take a long time, so phase 2 can be disabled  (option `--traversal-only`) if a compare of the directory structure seems to be good enough.
+</dd>
+</dl>
 
 ## Tailoring and Sampling
 
@@ -86,55 +104,67 @@ Options:
 
 ## More Details to Some Options
 
-`--output-path PATH`
-:   Set where the output should go:  
+<dl>
+
+<dt><code>--output-path PATH</code>:</dt><dd>
+
+Set where the output should go:  
     If the path of a _file_ is given, use this file as error log file and write 
     (if applicable) the OK log to `cmp-ok.log`
     in the same directory.  
     if the path of a _directory_ is given, write `cmp-err.log` and `cmp-ok.log`
     in this directory.
+</dd>
 
-`--relative-fs-top`
-:   Normally exclusion patterns which match only at the _beginning_ of a path
+<dt><code>--relative-fs-top</code>:</dt><dd>
+
+Normally exclusion patterns which match only at the _beginning_ of a path
     name have to start with that pattern as expected. This option widens the
     match to the middle of a path name as well. This is useful if you want to
     check on boot filesystems which you have copied deeper into a file system.
+</dd>
 
-`--live-fs-exclusions`
-:   Use additional exclusions which ignore files like .DS_Store. This helps to
+<dt><code>--live-fs-exclusions</code>:</dt><dd>
+
+Use additional exclusions which ignore files like .DS_Store. This helps to
     compare "life" filesystems as the same even if these files have changed
     (e.g. by looking at the file structure in Finder). This adds some various
     (experimental) cache exclusions as well.
+</dd>
 
-`--traverse-from-list PATH`
-:   Do not traverse the filesystem; instead use the list of relative paths
+<dt><code>--traverse-from-list PATH</code>:</dt><dd>
+
+Do not traverse the filesystem; instead use the list of relative paths
     given in a text file (one path per line). The paths are relative to the
     starting directories `FS1`/`FS2`.  
     Note: Only paths to normal _files_ are compares for same content. 
     _Directories_ are only checked for existence in FS1 and FS2;
     with _symlinks_ is only checked that they point to the same target.
+</dd>
+
+</dl>
 
 
 ## Version History
 
-Version 0.2
-:   
+**Version 0.2**
+
 * Option `--traverse-from-list` is implemented. 
+
 * Minor improvement to exclusion list, etc.
 
-Version 0.1
-:   
+**Version 0.1**
+
 * Compare while reporting progress bar
 * Option `--clear-std-exclusions` to compare _all_ files in the filesystems.
-
 
 ## Credits
 
 Thanks to:
 
-* Kent Nassen and Lennert Stock for the [ASCII art characters][ascii]
-* Armin Ronacher and contributors for [click]
-* Casper da Costa-Luis and contributors for [tqdm]
+* Kent Nassen and Lennert Stock for the [ASCII art characters][ascii].
+* Armin Ronacher and contributors for [click].
+* Casper da Costa-Luis and contributors for [tqdm].
 * Mike Bombich for [Carbon Copy Cloner][ccc][^1] and its exclusion list.
 
   [^1]: Backup tools like Carbon Copy Clonergave me the resaon to develop cmpdisktree in the first place.
