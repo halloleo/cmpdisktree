@@ -1,5 +1,7 @@
 # My additions
 
+.DS_Store
+
 # Output files
 cmp-err.log*
 cmp-ok.log*

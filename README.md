@@ -150,12 +150,12 @@ Do not traverse the filesystem; instead use the list of relative paths
 
 Thanks to:
 
+* Mike Bombich for [Carbon Copy Cloner][ccc][^1] and its exclusion list.
 * Kent Nassen and Lennert Stock for the [ASCII art characters][ascii].
 * Armin Ronacher and contributors for [click].
 * Casper da Costa-Luis and contributors for [tqdm].
-* Mike Bombich for [Carbon Copy Cloner][ccc][^1] and its exclusion list.
 
-  [^1]: Backup tools like Carbon Copy Clonergave me the resaon to develop cmpdisktree in the first place.
+  [^1]: Backup tools like Carbon Copy Cloner gave me the reason to develop cmpdisktree in the first place.
 
   [exclusion-source]: https://bombich.com/kb/ccc5/some-files-and-folders-are-automatically-excluded-from-backup-task
   [ascii]: http://www-personal.umich.edu/~knassen/figfonts/isometric2.flf
